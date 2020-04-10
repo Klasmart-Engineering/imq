@@ -1,4 +1,4 @@
-module calmisland/imq
+module bitbucket.org/calmisland/imq
 
 go 1.14
 
