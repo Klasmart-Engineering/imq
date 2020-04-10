@@ -1,7 +1,7 @@
 package basic
 
 import (
-	"calmisland/imq/drive"
+	"bitbucket.org/calmisland/imq/drive"
 	"fmt"
 	"testing"
 )
