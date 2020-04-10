@@ -1,8 +1,8 @@
 package imq
 
 import (
-	"bitbucket.org/calmisland/imq/basic"
-	"bitbucket.org/calmisland/imq/drive"
+	"gitlab.badanamu.com.cn/calmisland/imq/basic"
+	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"errors"
 )
 
