@@ -1,6 +1,8 @@
 package basic
 
 import (
+	"context"
+	"encoding/json"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"github.com/go-redis/redis"
 	"sync"
@@ -12,12 +14,25 @@ type RedisMQ struct {
 	subHandler map[int]*redis.PubSub
 }
 
-func(rmq *RedisMQ)Publish(topic string, message string) error{
-	//drive.GetRedis().RPush(topic, message)
-	return drive.GetRedis().Publish(topic, message).Err()
+type PublishMessage struct {
+	Ctx context.Context `json:"ctx"`
+	Message string `json:"message"`
 }
 
-func(rmq *RedisMQ)Subscribe(topic string, handler func(message string)) int{
+func(rmq *RedisMQ)Publish(ctx context.Context, topic string, message string) error{
+	//drive.GetRedis().RPush(topic, message)
+	msg := PublishMessage{
+		Ctx: ctx,
+		Message: message,
+	}
+	msgJSON, err := json.Marshal(msg)
+	if err != nil{
+		return err
+	}
+	return drive.GetRedis().Publish(topic, string(msgJSON)).Err()
+}
+
+func(rmq *RedisMQ)Subscribe(topic string, handler func(ctx context.Context, message string)) int{
 	//drive.GetRedis().BLPop(time.Minute, topic)
 	rmq.lock.Lock()
 	defer rmq.lock.Unlock()
@@ -28,7 +43,15 @@ func(rmq *RedisMQ)Subscribe(topic string, handler func(message string)) int{
 			if err != nil{
 				return
 			}
-			handler(msg.String())
+
+			msgJSON := msg.String()
+			publishMessage := new(PublishMessage)
+			err = json.Unmarshal([]byte(msgJSON), publishMessage)
+			if err != nil{
+				return
+			}
+
+			handler(publishMessage.Ctx, publishMessage.Message)
 		}
 	}()
 	rmq.curId ++

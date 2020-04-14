@@ -1,6 +1,7 @@
 package imq
 
 import (
+	"context"
 	"gitlab.badanamu.com.cn/calmisland/imq/basic"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"errors"
@@ -11,8 +12,8 @@ var(
 )
 
 type IMessageQueue interface{
-	Publish(topic string, message string) error
-	Subscribe(topic string, handler func(message string)) int
+	Publish(ctx context.Context, topic string, message string) error
+	Subscribe(topic string, handler func(ctx context.Context, message string)) int
 	Unsubscribe(hid int)
 }
 
