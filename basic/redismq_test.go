@@ -1,15 +1,17 @@
 package basic
 
 import (
+	"context"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"fmt"
 	"testing"
+	"time"
 )
 
-func subscribeHandler(msg string) {
+func subscribeHandler(ctx context.Context, msg string) {
 	fmt.Println("1:Receive message:", msg)
 }
-func subscribeHandler2(msg string) {
+func subscribeHandler2(ctx context.Context, msg string) {
 	fmt.Println("2:Receive message:", msg)
 }
 
@@ -24,10 +26,12 @@ func TestSubscribePublish(t *testing.T) {
 	h1 := mq.Subscribe("mypay", subscribeHandler)
 	mq.Subscribe("mypay", subscribeHandler2)
 
-	mq.Publish("mypay", "Goodbye1")
-	mq.Publish("mypay", "Goodbye2")
-	mq.Publish("mypay", "Goodbye3")
+	mq.Publish(context.Background(), "mypay", "Goodbye1")
+	mq.Publish(context.Background(), "mypay", "Goodbye2")
+	mq.Publish(context.Background(), "mypay", "Goodbye3")
 	mq.Unsubscribe(h1)
-	mq.Publish("mypay", "Goodbye4")
-	mq.Publish("mypay", "Goodbye5")
+	mq.Publish(context.Background(), "mypay", "Goodbye4")
+	mq.Publish(context.Background(), "mypay", "Goodbye5")
+
+	time.Sleep(time.Second)
 }
