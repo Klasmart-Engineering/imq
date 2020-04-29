@@ -2,6 +2,7 @@ package basic
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-redis/redis"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"sync"
@@ -21,7 +22,7 @@ type PublishMessage struct {
 func(rmq *RedisMQ)Publish(ctx context.Context, topic string, message string) error{
 	return drive.GetRedis().Publish(topic, message).Err()
 }
-func(rmq *RedisMQ)SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) bool) int{
+func(rmq *RedisMQ)SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int{
 	sub := drive.GetRedis().Subscribe(topic)
 
 	go func() {
@@ -32,9 +33,10 @@ func(rmq *RedisMQ)SubscribeWithReconnect(topic string, handler func(ctx context.
 				return
 			}
 
-			ret := handler(context.Background(), msg.Payload)
+			err = handler(context.Background(), msg.Payload)
 			//若该消息未处理，则重新发送
-			if !ret {
+			if err != nil {
+				fmt.Println("Handle message with error: ", err)
 				time.Sleep(requeue_delay)
 				rmq.Publish(context.Background(), topic, msg.Payload)
 			}

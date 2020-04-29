@@ -32,7 +32,7 @@ func TestNSQSubscribePublish(t *testing.T) {
 func TestNSQSubscribePublish2(t *testing.T) {
 	drive.SetNSQConfig(&drive.NSQConfig{
 		Channel: "Hello",
-		//Lookup:  []string{"127.0.0.1:4161"},
+		//Lookup:  []string{"127.0.0.1:4160"},
 		Address: "127.0.0.1:4150",
 	})
 	err := drive.OpenNSQProducer()

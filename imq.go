@@ -15,7 +15,7 @@ var(
 type IMessageQueue interface{
 	Publish(ctx context.Context, topic string, message string) error
 	Subscribe(topic string, handler func(ctx context.Context, message string)) int
-	SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) bool) int
+	SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int
 	Unsubscribe(hid int)
 }
 

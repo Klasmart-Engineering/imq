@@ -2,16 +2,12 @@ package basic
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/nsqio/go-nsq"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"sync"
 )
 
-var(
-	ErrHandleMessageFailed = errors.New("Handle message with error")
-)
 
 type NsqMQ2 struct {
 	locker sync.Mutex
@@ -38,11 +34,11 @@ func (n *NsqMQ2)Subscribe(topic string, handler func(ctx context.Context, messag
 	n.curId ++
 	return n.curId
 }
-func (n *NsqMQ2)SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) bool) int{
+func (n *NsqMQ2)SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int{
 	consumer, err := drive.CreateNSQConsumer(topic, func(ctx context.Context, message string) error {
-		ret := handler(ctx, message)
-		if !ret {
-			return ErrHandleMessageFailed
+		err := handler(ctx, message)
+		if err != nil {
+			return err
 		}
 		return nil
 	})
