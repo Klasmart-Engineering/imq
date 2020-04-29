@@ -1,6 +1,7 @@
 package basic
 
 import (
+	"bitbucket.org/calmisland/common-cn/helper"
 	"context"
 	"fmt"
 	"github.com/nsqio/go-nsq"
@@ -16,11 +17,22 @@ type NsqMQ2 struct {
 }
 
 func (n *NsqMQ2)Publish(ctx context.Context, topic string, message string) error{
-	return drive.GetNSQProducer().Publish(topic, []byte(message))
+	publishMessage, err := marshalPublishMessage(ctx, message)
+	if err != nil{
+		return err
+	}
+	return drive.GetNSQProducer().Publish(topic, []byte(publishMessage))
 }
 func (n *NsqMQ2)Subscribe(topic string, handler func(ctx context.Context, message string)) int{
 	consumer, err := drive.CreateNSQConsumer(topic, func(ctx context.Context, message string) error {
-		handler(ctx, message)
+		publishMessage, err := unmarshalPublishMessage(message)
+		if err != nil{
+			fmt.Println("Unmarshal message failed, error:", err)
+			return err
+		}
+		ctx0 := context.WithValue(ctx, helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+
+		handler(ctx0, publishMessage.Message)
 		return nil
 	})
 	if err != nil{
@@ -36,7 +48,14 @@ func (n *NsqMQ2)Subscribe(topic string, handler func(ctx context.Context, messag
 }
 func (n *NsqMQ2)SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int{
 	consumer, err := drive.CreateNSQConsumer(topic, func(ctx context.Context, message string) error {
-		err := handler(ctx, message)
+		publishMessage, err := unmarshalPublishMessage(message)
+		if err != nil{
+			fmt.Println("Unmarshal message failed, error:", err)
+			return err
+		}
+		ctx0 := context.WithValue(ctx, helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+
+		err = handler(ctx0, publishMessage.Message)
 		if err != nil {
 			return err
 		}

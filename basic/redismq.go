@@ -2,9 +2,11 @@ package basic
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
+	"bitbucket.org/calmisland/common-cn/helper"
 	"sync"
 	"time"
 )
@@ -17,10 +19,37 @@ type RedisMQ struct {
 
 type PublishMessage struct {
 	Message string `json:"message"`
+	BadaCtx *helper.BadaCtx `json:"bada_ctx"`
+}
+
+func marshalPublishMessage(ctx context.Context, message string) (string, error){
+	badaCtx, _ := ctx.Value(helper.CtxKeyBadaCtx).(*helper.BadaCtx)
+	publishMessage := PublishMessage{
+		Message: message,
+		BadaCtx: badaCtx,
+	}
+	resp, err := json.Marshal(publishMessage)
+	if err != nil{
+		return "", err
+	}
+	return string(resp), nil
+}
+
+func unmarshalPublishMessage(message string) (*PublishMessage, error){
+	publishMessage := new(PublishMessage)
+	err := json.Unmarshal([]byte(message), publishMessage)
+	if err != nil{
+		return nil, err
+	}
+	return publishMessage, nil
 }
 
 func(rmq *RedisMQ)Publish(ctx context.Context, topic string, message string) error{
-	return drive.GetRedis().Publish(topic, message).Err()
+	publishMessage, err := marshalPublishMessage(ctx, message)
+	if err != nil{
+		return err
+	}
+	return drive.GetRedis().Publish(topic, publishMessage).Err()
 }
 func(rmq *RedisMQ)SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int{
 	sub := drive.GetRedis().Subscribe(topic)
@@ -30,10 +59,19 @@ func(rmq *RedisMQ)SubscribeWithReconnect(topic string, handler func(ctx context.
 			//msg := <- sub.Channel()
 			msg, err := sub.ReceiveMessage()
 			if err != nil{
+				fmt.Println("Receive message failed, error:", err)
 				return
 			}
 
-			err = handler(context.Background(), msg.Payload)
+			publishMessage, err := unmarshalPublishMessage(msg.Payload)
+			if err != nil{
+				fmt.Println("Unmarshal message failed, error:", err)
+				return
+			}
+			ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+
+
+			err = handler(ctx, publishMessage.Message)
 			//若该消息未处理，则重新发送
 			if err != nil {
 				fmt.Println("Handle message with error: ", err)
@@ -58,8 +96,14 @@ func(rmq *RedisMQ)Subscribe(topic string, handler func(ctx context.Context, mess
 			if err != nil{
 				return
 			}
+			publishMessage, err := unmarshalPublishMessage(msg.Payload)
+			if err != nil{
+				fmt.Println("Unmarshal message failed, error:", err)
+				return
+			}
+			ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
 
-			handler(context.Background(), msg.Payload)
+			handler(ctx, publishMessage.Message)
 		}
 	}()
 
