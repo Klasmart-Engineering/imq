@@ -10,7 +10,9 @@ func OpenRedis(host string, port int, password string) error{
 	redis = rd.NewClient(&rd.Options{
 		Addr:     fmt.Sprintf("%s:%d", host, port),
 		Password: password, // no password set
-		DB:       0,                     // use default DB
+		DB:       0,        // use default DB
+		//IdleTimeout: -1,
+		//IdleCheckFrequency: -1,
 	})
 	//测试Redis是否连接成功
 	_, err := redis.Ping().Result()

@@ -35,3 +35,30 @@ func TestSubscribePublish(t *testing.T) {
 
 	time.Sleep(time.Second)
 }
+
+
+
+func TestSubscribePublishTimeout(t *testing.T) {
+	err := drive.OpenRedis("127.0.0.1", 6379, "")
+	if err != nil{
+		fmt.Println(err)
+		return
+	}
+
+	mq := NewRedisMQ()
+	mq.Subscribe("mypay", subscribeHandler)
+	mq.Subscribe("mypay", subscribeHandler2)
+
+	mq.Publish(context.Background(), "mypay", "Goodbye1")
+	mq.Publish(context.Background(), "mypay", "Goodbye2")
+	mq.Publish(context.Background(), "mypay", "Goodbye3")
+
+	time.Sleep(time.Minute * 5)
+
+	mq.Publish(context.Background(), "mypay", "timeout goodbye")
+
+
+	time.Sleep(time.Minute * 1)
+
+	mq.Publish(context.Background(), "mypay", "timeout goodbye222")
+}
