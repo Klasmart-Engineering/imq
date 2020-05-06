@@ -11,7 +11,7 @@ import (
 )
 
 type KafkaConfig struct {
-	BootstrapAddress string
+	BootstrapAddress []string
 	GroupId string
 }
 

@@ -33,7 +33,7 @@ type Config struct {
 	OpenProducer bool
 
 	KafkaGroup string
-	KafkaBootstrapAddress string
+	KafkaBootstrapAddress []string
 }
 
 func CreateMessageQueue(conf Config) (IMessageQueue, error) {
@@ -62,7 +62,7 @@ func CreateMessageQueue(conf Config) (IMessageQueue, error) {
 		return basic.NewNsqMQ2(), nil
 
 	case "kafka":
-		if conf.KafkaBootstrapAddress == "" || conf.KafkaGroup == "" {
+		if len(conf.KafkaBootstrapAddress) == 0 || conf.KafkaGroup == "" {
 			return nil, ErrInvalidKafkaConfig
 		}
 		return basic.NewKafkaMQ(basic.KafkaConfig{
