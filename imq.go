@@ -62,7 +62,7 @@ func CreateMessageQueue(conf Config) (IMessageQueue, error) {
 		return basic.NewNsqMQ2(), nil
 
 	case "kafka":
-		if len(conf.KafkaBootstrapAddress) == 0 || conf.KafkaGroup == "" {
+		if len(conf.KafkaBootstrapAddress) == 0 {
 			return nil, ErrInvalidKafkaConfig
 		}
 		return basic.NewKafkaMQ(basic.KafkaConfig{

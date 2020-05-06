@@ -9,7 +9,7 @@ import (
 
 func TestKafkaSubscribePublish(t *testing.T) {
 	mq := NewKafkaMQ(KafkaConfig{
-		BootstrapAddress: "192.168.1.234:19092",
+		BootstrapAddress: []string{"192.168.1.234:19092"},
 		GroupId:          "group.test",
 	})
 
