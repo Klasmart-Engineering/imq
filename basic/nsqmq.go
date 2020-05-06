@@ -1,6 +1,7 @@
 package basic
 
 import (
+	"bitbucket.org/calmisland/common-cn/helper"
 	"context"
 	"fmt"
 	"github.com/segmentio/nsq-go"
@@ -68,7 +69,11 @@ func (n *NsqMQ)Publish(ctx context.Context, topic string, message string) error{
 	// Publishes a message to the topic that this producer is configured for,
 	// the method returns when the operation completes, potentially returning an
 	// error if something went wrong.
-	err = producer.Publish([]byte(message))
+	publishMessage, err := marshalPublishMessage(ctx, message)
+	if err != nil{
+		return err
+	}
+	err = producer.Publish([]byte(publishMessage))
 	if err != nil{
 		return err
 	}
@@ -98,7 +103,14 @@ func(n *NsqMQ)SubscribeWithReconnect(topic string, handler func(ctx context.Cont
 		for msg := range consumer.Messages() {
 			// handle the message, then call msg.Finish or msg.Requeue
 			// ...
-			ret := handler(context.Background(), string(msg.Body))
+			publishMessage, err := unmarshalPublishMessage(string(msg.Body))
+			if err != nil{
+				fmt.Println("Unmarshal message failed, error:", err)
+				//return err
+			}
+			ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+
+			ret := handler(ctx, publishMessage.Message)
 			if ret {
 				msg.Finish()
 			}else{
@@ -111,8 +123,9 @@ func(n *NsqMQ)SubscribeWithReconnect(topic string, handler func(ctx context.Cont
 	n.consumerLock.Lock()
 	defer n.consumerLock.Unlock()
 	n.consumerMap[n.curId] = consumer
+	id := n.curId
 	n.curId ++
-	return n.curId
+	return id
 }
 func (n *NsqMQ)Subscribe(topic string, handler func(ctx context.Context, message string)) int{
 	// Create a new consumer, looking up nsqd nodes from the listed nsqlookup
@@ -135,7 +148,14 @@ func (n *NsqMQ)Subscribe(topic string, handler func(ctx context.Context, message
 			// handle the message, then call msg.Finish or msg.Requeue
 			// ...
 			fmt.Println("Get message:", msg)
-			handler(context.Background(), string(msg.Body))
+			publishMessage, err := unmarshalPublishMessage(string(msg.Body))
+			if err != nil{
+				fmt.Println("Unmarshal message failed, error:", err)
+				//return err
+			}
+			ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+
+			handler(ctx, publishMessage.Message)
 			msg.Finish()
 		}
 	}()
@@ -143,8 +163,9 @@ func (n *NsqMQ)Subscribe(topic string, handler func(ctx context.Context, message
 	n.consumerLock.Lock()
 	defer n.consumerLock.Unlock()
 	n.consumerMap[n.curId] = consumer
+	id := n.curId
 	n.curId ++
-	return n.curId
+	return id
 }
 
 func (n *NsqMQ)Unsubscribe(hid int){

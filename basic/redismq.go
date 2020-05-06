@@ -83,9 +83,10 @@ func(rmq *RedisMQ)SubscribeWithReconnect(topic string, handler func(ctx context.
 
 	rmq.lock.Lock()
 	defer rmq.lock.Unlock()
+	id := rmq.curId
 	rmq.curId ++
 	rmq.subHandler[rmq.curId] = sub
-	return rmq.curId
+	return id
 }
 
 func(rmq *RedisMQ)Subscribe(topic string, handler func(ctx context.Context, message string)) int{
@@ -109,9 +110,10 @@ func(rmq *RedisMQ)Subscribe(topic string, handler func(ctx context.Context, mess
 
 	rmq.lock.Lock()
 	defer rmq.lock.Unlock()
+	id := rmq.curId
 	rmq.curId ++
 	rmq.subHandler[rmq.curId] = sub
-	return rmq.curId
+	return id
 }
 
 func (rmq *RedisMQ) Unsubscribe(hid int) {

@@ -10,6 +10,7 @@ import (
 var(
 	ErrUnknownDrive = errors.New("Unknown mq drive")
 	ErrInvalidNSQConfig = errors.New("Invalid nsq config")
+	ErrInvalidKafkaConfig = errors.New("Invalid kafka config")
 )
 
 type IMessageQueue interface{
@@ -30,6 +31,9 @@ type Config struct {
 	NSQLookup []string
 	NSQAddress string
 	OpenProducer bool
+
+	KafkaGroup string
+	KafkaBootstrapAddress string
 }
 
 func CreateMessageQueue(conf Config) (IMessageQueue, error) {
@@ -41,9 +45,9 @@ func CreateMessageQueue(conf Config) (IMessageQueue, error) {
 		}
 		return basic.NewRedisMQ(), nil
 	case "nsq":
-		if conf.NSQLookup == nil || conf.NSQChannel == "" || conf.NSQAddress == ""{
-			return nil, ErrInvalidNSQConfig
-		}
+		//if conf.OpenProducer && conf.NSQLookup == nil || conf.NSQChannel == "" || conf.NSQAddress == ""{
+		//	return nil, ErrInvalidNSQConfig
+		//}
 		drive.SetNSQConfig(&drive.NSQConfig{
 			Address: conf.NSQAddress,
 			Lookup:  conf.NSQLookup,
@@ -56,6 +60,15 @@ func CreateMessageQueue(conf Config) (IMessageQueue, error) {
 			}
 		}
 		return basic.NewNsqMQ2(), nil
+
+	case "kafka":
+		if conf.KafkaBootstrapAddress == "" || conf.KafkaGroup == "" {
+			return nil, ErrInvalidKafkaConfig
+		}
+		return basic.NewKafkaMQ(basic.KafkaConfig{
+			BootstrapAddress: conf.KafkaBootstrapAddress,
+			GroupId:          conf.KafkaGroup,
+		}), nil
 	}
 	return nil, ErrUnknownDrive
 }

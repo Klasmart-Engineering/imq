@@ -43,8 +43,9 @@ func (n *NsqMQ2)Subscribe(topic string, handler func(ctx context.Context, messag
 	defer n.locker.Unlock()
 	n.consumerMap[n.curId] = consumer
 
+	id := n.curId
 	n.curId ++
-	return n.curId
+	return id
 }
 func (n *NsqMQ2)SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int{
 	consumer, err := drive.CreateNSQConsumer(topic, func(ctx context.Context, message string) error {
@@ -69,8 +70,9 @@ func (n *NsqMQ2)SubscribeWithReconnect(topic string, handler func(ctx context.Co
 	n.locker.Lock()
 	defer n.locker.Unlock()
 	n.consumerMap[n.curId] = consumer
+	id := n.curId
 	n.curId ++
-	return n.curId
+	return id
 }
 func (n *NsqMQ2)Unsubscribe(hid int){
 	n.locker.Lock()
