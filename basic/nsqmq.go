@@ -1,12 +1,13 @@
 package basic
 
 import (
-	"bitbucket.org/calmisland/common-cn/helper"
 	"context"
 	"fmt"
-	"github.com/segmentio/nsq-go"
 	"sync"
 	"time"
+
+	"github.com/segmentio/nsq-go"
+	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 
 type NSQConfig struct {
 	Channel string
-	Lookup []string
+	Lookup  []string
 	Address string
 }
 
@@ -37,7 +38,7 @@ func (n *NsqMQ) tryGetPublisher(ctx context.Context, topic string) (*nsq.Produce
 		Topic:   topic,
 		Address: n.config.Address,
 	})
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
@@ -58,11 +59,11 @@ func (n *NsqMQ) deleteProducer(ctx context.Context, topic string) {
 	delete(n.producerMap, topic)
 }
 
-func (n *NsqMQ)Publish(ctx context.Context, topic string, message string) error{
+func (n *NsqMQ) Publish(ctx context.Context, topic string, message string) error {
 	// Starts a new producer that publishes to the TCP endpoint of a nsqd node.
 	// The producer automatically handles connections in the background.
 	producer, err := n.tryGetPublisher(ctx, topic)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -70,11 +71,11 @@ func (n *NsqMQ)Publish(ctx context.Context, topic string, message string) error{
 	// the method returns when the operation completes, potentially returning an
 	// error if something went wrong.
 	publishMessage, err := marshalPublishMessage(ctx, message)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	err = producer.Publish([]byte(publishMessage))
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -83,17 +84,17 @@ func (n *NsqMQ)Publish(ctx context.Context, topic string, message string) error{
 	//producer.Stop()
 	return nil
 }
-func(n *NsqMQ)SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) bool) int {
+func (n *NsqMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) bool) int {
 	// Create a new consumer, looking up nsqd nodes from the listed nsqlookup
 	// addresses, pulling messages from the 'world' channel of the 'hello' topic
 	// with a maximum of 250 in-flight messages.
 	consumer, err := nsq.StartConsumer(nsq.ConsumerConfig{
-		Topic:   topic,
-		Channel: n.config.Channel,
-		Lookup:  n.config.Lookup,
+		Topic:       topic,
+		Channel:     n.config.Channel,
+		Lookup:      n.config.Lookup,
 		MaxInFlight: 250,
 	})
-	if err != nil{
+	if err != nil {
 		return -1
 	}
 
@@ -104,7 +105,7 @@ func(n *NsqMQ)SubscribeWithReconnect(topic string, handler func(ctx context.Cont
 			// handle the message, then call msg.Finish or msg.Requeue
 			// ...
 			publishMessage, err := unmarshalPublishMessage(string(msg.Body))
-			if err != nil{
+			if err != nil {
 				fmt.Println("Unmarshal message failed, error:", err)
 				//return err
 			}
@@ -113,7 +114,7 @@ func(n *NsqMQ)SubscribeWithReconnect(topic string, handler func(ctx context.Cont
 			ret := handler(ctx, publishMessage.Message)
 			if ret {
 				msg.Finish()
-			}else{
+			} else {
 				//5秒后重试
 				msg.Requeue(requeue_delay)
 			}
@@ -124,20 +125,20 @@ func(n *NsqMQ)SubscribeWithReconnect(topic string, handler func(ctx context.Cont
 	defer n.consumerLock.Unlock()
 	n.consumerMap[n.curId] = consumer
 	id := n.curId
-	n.curId ++
+	n.curId++
 	return id
 }
-func (n *NsqMQ)Subscribe(topic string, handler func(ctx context.Context, message string)) int{
+func (n *NsqMQ) Subscribe(topic string, handler func(ctx context.Context, message string)) int {
 	// Create a new consumer, looking up nsqd nodes from the listed nsqlookup
 	// addresses, pulling messages from the 'world' channel of the 'hello' topic
 	// with a maximum of 250 in-flight messages.
 	consumer, err := nsq.StartConsumer(nsq.ConsumerConfig{
-		Topic:   topic,
-		Channel: n.config.Channel,
-		Lookup:  n.config.Lookup,
+		Topic:       topic,
+		Channel:     n.config.Channel,
+		Lookup:      n.config.Lookup,
 		MaxInFlight: 250,
 	})
-	if err != nil{
+	if err != nil {
 		return -1
 	}
 
@@ -149,7 +150,7 @@ func (n *NsqMQ)Subscribe(topic string, handler func(ctx context.Context, message
 			// ...
 			fmt.Println("Get message:", msg)
 			publishMessage, err := unmarshalPublishMessage(string(msg.Body))
-			if err != nil{
+			if err != nil {
 				fmt.Println("Unmarshal message failed, error:", err)
 				//return err
 			}
@@ -164,27 +165,28 @@ func (n *NsqMQ)Subscribe(topic string, handler func(ctx context.Context, message
 	defer n.consumerLock.Unlock()
 	n.consumerMap[n.curId] = consumer
 	id := n.curId
-	n.curId ++
+	n.curId++
 	return id
 }
 
-func (n *NsqMQ)Unsubscribe(hid int){
+func (n *NsqMQ) Unsubscribe(hid int) {
 	n.consumerLock.Lock()
 	defer n.consumerLock.Unlock()
 	consumer := n.consumerMap[hid]
 	consumer.Stop()
 	delete(n.consumerMap, hid)
 }
+
 //producerLock sync.Mutex
 //consumerLock sync.Mutex
 //producerMap  map[string]*nsq.Producer
 //consumerMap  map[int]*nsq.Consumer
 //config       *drive.NSQConfig
-func NewNSQMQ(config NSQConfig)*NsqMQ{
+func NewNSQMQ(config NSQConfig) *NsqMQ {
 	return &NsqMQ{
-		curId:      1,
+		curId:       1,
 		producerMap: make(map[string]*nsq.Producer),
 		consumerMap: make(map[int]*nsq.Consumer),
-		config: config,
+		config:      config,
 	}
 }
