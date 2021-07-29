@@ -3,6 +3,7 @@ package basic
 import (
 	"context"
 	"fmt"
+	"github.com/go-redis/redis"
 	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"sync"
@@ -45,8 +46,12 @@ func (rmq *RedisListMQ) SubscribeWithReconnect(topic string, handler func(ctx co
 
 	rmq.cid ++
 	rmq.quitMap[rmq.cid] = rmq.startSubscribeLoop(func() {
-		res := drive.GetRedis().BRPop(time.Second * 10, topic)
+		res := drive.GetRedis().BRPop(time.Second * 15, topic)
 		result, err := res.Result()
+		if err == redis.Nil{
+			//Timeout
+			return
+		}
 		if err != nil {
 			fmt.Println("Receive message failed, error:", err)
 			return
@@ -79,8 +84,12 @@ func (rmq *RedisListMQ) Subscribe(topic string, handler func(ctx context.Context
 	rmq.cid ++
 
 	rmq.quitMap[rmq.cid] = rmq.startSubscribeLoop(func() {
-		res := drive.GetRedis().BRPop(time.Second * 10, topic)
+		res := drive.GetRedis().BRPop(time.Second * 15, topic)
 		result, err := res.Result()
+		if err == redis.Nil{
+			//Timeout
+			return
+		}
 		if err != nil {
 			fmt.Println("Receive message failed, error:", err)
 			return
