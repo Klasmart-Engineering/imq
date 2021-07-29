@@ -1,30 +1,30 @@
 package basic
 
 import (
-	"bitbucket.org/calmisland/common-cn/helper"
 	"context"
 	"fmt"
-	"github.com/segmentio/kafka-go"
-	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"io"
 	"sync"
+
+	"github.com/segmentio/kafka-go"
+	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
+	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 )
 
 type KafkaConfig struct {
 	BootstrapAddress []string
-	GroupId string
+	GroupId          string
 }
 
 type KafkaMQ struct {
-	locker sync.Mutex
+	locker       sync.Mutex
 	producerLock sync.Mutex
-	curId int
-	consumerMap map[int]*kafka.Reader
-	producerMap map[string]*kafka.Writer
+	curId        int
+	consumerMap  map[int]*kafka.Reader
+	producerMap  map[string]*kafka.Writer
 
 	config KafkaConfig
 }
-
 
 func (n *KafkaMQ) tryGetPublisher(ctx context.Context, topic string) (*kafka.Writer, error) {
 	producer, ok := n.producerMap[topic]
@@ -50,34 +50,34 @@ func (k *KafkaMQ) deleteProducer(ctx context.Context, topic string) {
 	delete(k.producerMap, topic)
 }
 
-func (k *KafkaMQ) Publish(ctx context.Context, topic string, message string) error{
+func (k *KafkaMQ) Publish(ctx context.Context, topic string, message string) error {
 	publishMessage, err := marshalPublishMessage(ctx, message)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	publisher, err := k.tryGetPublisher(ctx, topic)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	err = publisher.WriteMessages(ctx, kafka.Message{
-		Key:			[]byte(topic),
-		Value:          []byte(publishMessage),
+		Key:   []byte(topic),
+		Value: []byte(publishMessage),
 	})
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	return nil
 }
-func (k *KafkaMQ) Subscribe(topic string, handler func(ctx context.Context, message string)) int{
+func (k *KafkaMQ) Subscribe(topic string, handler func(ctx context.Context, message string)) int {
 	consumer := drive.NewKafkaReader(topic, k.config.BootstrapAddress, k.config.GroupId)
 	go func() {
 		for {
 			msg, err := consumer.ReadMessage(context.Background())
 			if err == nil {
 				publishMessage, err := unmarshalPublishMessage(string(msg.Value))
-				if err != nil{
+				if err != nil {
 					fmt.Println("Unmarshal message failed, error:", err)
 					//return err
 				}
@@ -88,7 +88,7 @@ func (k *KafkaMQ) Subscribe(topic string, handler func(ctx context.Context, mess
 				// The client will automatically try to recover from all errors.
 				fmt.Printf("Consumer error: %v (%v)\n", err, msg)
 				//连接已关闭
-				if err == io.EOF{
+				if err == io.EOF {
 					break
 				}
 			}
@@ -99,33 +99,33 @@ func (k *KafkaMQ) Subscribe(topic string, handler func(ctx context.Context, mess
 	defer k.locker.Unlock()
 	k.consumerMap[k.curId] = consumer
 	id := k.curId
-	k.curId ++
+	k.curId++
 
 	return id
 }
-func (k *KafkaMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int{
+func (k *KafkaMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int {
 	consumer := drive.NewKafkaReader(topic, k.config.BootstrapAddress, k.config.GroupId)
 	go func() {
 		for {
 			msg, err := consumer.ReadMessage(context.Background())
 			if err == nil {
 				publishMessage, err := unmarshalPublishMessage(string(msg.Value))
-				if err != nil{
+				if err != nil {
 					fmt.Println("Unmarshal message failed, error:", err)
 					//return err
 				}
 				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
 				err = handler(ctx, publishMessage.Message)
-				if err != nil{
+				if err != nil {
 
 					fmt.Printf("Consumer error: %v (%v)\n", err, msg)
-				}else{
+				} else {
 					fmt.Printf("Message on %s: %s\n", msg.Key, string(msg.Value))
 				}
 			} else {
 				// The client will automatically try to recover from all errors.
 				fmt.Printf("Consumer error: %v (%v)\n", err, msg)
-				if err == io.EOF{
+				if err == io.EOF {
 					break
 				}
 			}
@@ -136,10 +136,10 @@ func (k *KafkaMQ) SubscribeWithReconnect(topic string, handler func(ctx context.
 	defer k.locker.Unlock()
 	k.consumerMap[k.curId] = consumer
 	id := k.curId
-	k.curId ++
+	k.curId++
 	return id
 }
-func (k *KafkaMQ) Unsubscribe(hid int){
+func (k *KafkaMQ) Unsubscribe(hid int) {
 	k.locker.Lock()
 	defer k.locker.Unlock()
 	consumer, ok := k.consumerMap[hid]
@@ -150,11 +150,11 @@ func (k *KafkaMQ) Unsubscribe(hid int){
 	}
 }
 
-func NewKafkaMQ(config KafkaConfig)*KafkaMQ{
+func NewKafkaMQ(config KafkaConfig) *KafkaMQ {
 	return &KafkaMQ{
-		curId:      1,
+		curId:       1,
 		consumerMap: make(map[int]*kafka.Reader),
 		producerMap: make(map[string]*kafka.Writer),
-		config: config,
+		config:      config,
 	}
 }

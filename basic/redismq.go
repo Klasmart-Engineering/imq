@@ -1,14 +1,15 @@
 package basic
 
 import (
-	"bitbucket.org/calmisland/common-cn/helper"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis"
-	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"sync"
 	"time"
+
+	"github.com/go-redis/redis"
+	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
+	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 )
 
 type RedisMQ struct {
