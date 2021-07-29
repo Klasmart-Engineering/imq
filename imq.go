@@ -2,9 +2,9 @@ package imq
 
 import (
 	"context"
+	"errors"
 	"gitlab.badanamu.com.cn/calmisland/imq/basic"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
-	"errors"
 )
 
 var(
@@ -44,6 +44,12 @@ func CreateMessageQueue(conf Config) (IMessageQueue, error) {
 			return nil, err
 		}
 		return basic.NewRedisMQ(), nil
+	case "redis-list":
+		err := drive.OpenRedis(conf.RedisHost, conf.RedisPort, conf.RedisPassword)
+		if err != nil {
+			return nil, err
+		}
+		return basic.NewRedisListMQ(), nil
 	case "nsq":
 		//if conf.OpenProducer && conf.NSQLookup == nil || conf.NSQChannel == "" || conf.NSQAddress == ""{
 		//	return nil, ErrInvalidNSQConfig
