@@ -101,23 +101,25 @@ func (n *NsqMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Co
 	go func() {
 		// Consume messages, the consumer automatically connects to the nsqd nodes
 		// it discovers and handles reconnections if something goes wrong.
-		for msg := range consumer.Messages() {
+		for msg0 := range consumer.Messages() {
 			// handle the message, then call msg.Finish or msg.Requeue
 			// ...
-			publishMessage, err := unmarshalPublishMessage(string(msg.Body))
-			if err != nil {
-				fmt.Println("Unmarshal message failed, error:", err)
-				//return err
-			}
-			ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+			go func(msg nsq.Message) {
+				publishMessage, err := unmarshalPublishMessage(string(msg.Body))
+				if err != nil {
+					fmt.Println("Unmarshal message failed, error:", err)
+					return
+				}
+				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
 
-			ret := handler(ctx, publishMessage.Message)
-			if ret {
-				msg.Finish()
-			} else {
-				//5秒后重试
-				msg.Requeue(requeue_delay)
-			}
+				ret := handler(ctx, publishMessage.Message)
+				if ret {
+					msg.Finish()
+				} else {
+					//5秒后重试
+					msg.Requeue(requeue_delay)
+				}
+			}(msg0)
 		}
 	}()
 
@@ -148,16 +150,19 @@ func (n *NsqMQ) Subscribe(topic string, handler func(ctx context.Context, messag
 		for msg := range consumer.Messages() {
 			// handle the message, then call msg.Finish or msg.Requeue
 			// ...
-			fmt.Println("Get message:", msg)
-			publishMessage, err := unmarshalPublishMessage(string(msg.Body))
-			if err != nil {
-				fmt.Println("Unmarshal message failed, error:", err)
-				//return err
-			}
-			ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+			go func() {
+				fmt.Println("Get message:", msg)
+				publishMessage, err := unmarshalPublishMessage(string(msg.Body))
+				if err != nil {
+					fmt.Println("Unmarshal message failed, error:", err)
+					//return err
+				}
+				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
 
-			handler(ctx, publishMessage.Message)
-			msg.Finish()
+				handler(ctx, publishMessage.Message)
+				msg.Finish()
+			}()
+
 		}
 	}()
 

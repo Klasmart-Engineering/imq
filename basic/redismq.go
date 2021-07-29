@@ -63,21 +63,22 @@ func (rmq *RedisMQ) SubscribeWithReconnect(topic string, handler func(ctx contex
 				fmt.Println("Receive message failed, error:", err)
 				continue
 			}
+			go func() {
+				publishMessage, err := unmarshalPublishMessage(msg.Payload)
+				if err != nil {
+					fmt.Println("Unmarshal message failed, error:", err)
+					return
+				}
+				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
 
-			publishMessage, err := unmarshalPublishMessage(msg.Payload)
-			if err != nil {
-				fmt.Println("Unmarshal message failed, error:", err)
-				continue
-			}
-			ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
-
-			err = handler(ctx, publishMessage.Message)
-			//若该消息未处理，则重新发送
-			if err != nil {
-				fmt.Println("Handle message with error: ", err)
-				time.Sleep(requeue_delay)
-				rmq.Publish(context.Background(), topic, msg.Payload)
-			}
+				err = handler(ctx, publishMessage.Message)
+				//若该消息未处理，则重新发送
+				if err != nil {
+					fmt.Println("Handle message with error: ", err)
+					time.Sleep(requeue_delay)
+					rmq.Publish(context.Background(), topic, msg.Payload)
+				}
+			}()
 		}
 	}()
 
@@ -98,14 +99,16 @@ func (rmq *RedisMQ) Subscribe(topic string, handler func(ctx context.Context, me
 				fmt.Println("Receive message failed, error:", err)
 				continue
 			}
-			publishMessage, err := unmarshalPublishMessage(msg.Payload)
-			if err != nil {
-				fmt.Println("Unmarshal message failed, error:", err)
-				continue
-			}
-			ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+			go func() {
+				publishMessage, err := unmarshalPublishMessage(msg.Payload)
+				if err != nil {
+					fmt.Println("Unmarshal message failed, error:", err)
+					return
+				}
+				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
 
-			handler(ctx, publishMessage.Message)
+				handler(ctx, publishMessage.Message)
+			}()
 		}
 	}()
 

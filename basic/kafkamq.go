@@ -74,19 +74,21 @@ func (k *KafkaMQ) Subscribe(topic string, handler func(ctx context.Context, mess
 	consumer := drive.NewKafkaReader(topic, k.config.BootstrapAddress, k.config.GroupId)
 	go func() {
 		for {
-			msg, err := consumer.ReadMessage(context.Background())
+			msg0, err := consumer.ReadMessage(context.Background())
 			if err == nil {
-				publishMessage, err := unmarshalPublishMessage(string(msg.Value))
-				if err != nil {
-					fmt.Println("Unmarshal message failed, error:", err)
-					//return err
-				}
-				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
-				handler(ctx, publishMessage.Message)
-				fmt.Printf("Message on %s: %s\n", msg.Key, string(msg.Value))
+				go func(msg kafka.Message) {
+					publishMessage, err := unmarshalPublishMessage(string(msg.Value))
+					if err != nil {
+						fmt.Println("Unmarshal message failed, error:", err)
+						//return err
+					}
+					ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+					handler(ctx, publishMessage.Message)
+					fmt.Printf("Message on %s: %s\n", msg.Key, string(msg.Value))
+				}(msg0)
 			} else {
 				// The client will automatically try to recover from all errors.
-				fmt.Printf("Consumer error: %v (%v)\n", err, msg)
+				fmt.Printf("Consumer error: %v (%v)\n", err, msg0)
 				//连接已关闭
 				if err == io.EOF {
 					break
@@ -107,24 +109,26 @@ func (k *KafkaMQ) SubscribeWithReconnect(topic string, handler func(ctx context.
 	consumer := drive.NewKafkaReader(topic, k.config.BootstrapAddress, k.config.GroupId)
 	go func() {
 		for {
-			msg, err := consumer.ReadMessage(context.Background())
+			msg0, err := consumer.ReadMessage(context.Background())
 			if err == nil {
-				publishMessage, err := unmarshalPublishMessage(string(msg.Value))
-				if err != nil {
-					fmt.Println("Unmarshal message failed, error:", err)
-					//return err
-				}
-				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
-				err = handler(ctx, publishMessage.Message)
-				if err != nil {
+				go func(msg kafka.Message) {
+					publishMessage, err := unmarshalPublishMessage(string(msg.Value))
+					if err != nil {
+						fmt.Println("Unmarshal message failed, error:", err)
+						//return err
+					}
+					ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+					err = handler(ctx, publishMessage.Message)
+					if err != nil {
+						fmt.Printf("Consumer error: %v (%v)\n", err, msg)
+					} else {
+						fmt.Printf("Message on %s: %s\n", msg.Key, string(msg.Value))
+					}
+				}(msg0)
 
-					fmt.Printf("Consumer error: %v (%v)\n", err, msg)
-				} else {
-					fmt.Printf("Message on %s: %s\n", msg.Key, string(msg.Value))
-				}
 			} else {
 				// The client will automatically try to recover from all errors.
-				fmt.Printf("Consumer error: %v (%v)\n", err, msg)
+				fmt.Printf("Consumer error: %v (%v)\n", err, msg0)
 				if err == io.EOF {
 					break
 				}
