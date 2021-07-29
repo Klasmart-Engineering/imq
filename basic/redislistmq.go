@@ -110,5 +110,6 @@ func (rmq *RedisListMQ) Unsubscribe(hid int) {
 
 func NewRedisListMQ() *RedisListMQ {
 	return &RedisListMQ{
+		quitMap: make(map[int]chan struct{}),
 	}
 }
