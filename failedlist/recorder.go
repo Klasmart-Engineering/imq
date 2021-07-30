@@ -127,6 +127,9 @@ func NewRecorder(path string) *Recorder {
 		persistencePath: path,
 		quit:            make(chan struct{}),
 	}
+	if recorder.persistencePath == "" {
+		recorder.persistencePath = os.TempDir() + "/" + "imq_failed_persistence.json"
+	}
 
 	recorder.loadRecords()
 
