@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gitlab.badanamu.com.cn/calmisland/imq/failedlist"
 	"sync"
 	"time"
 
@@ -16,6 +17,10 @@ type RedisMQ struct {
 	lock       sync.Mutex
 	curId      int
 	subHandler map[int]*redis.PubSub
+
+	recorder                *failedlist.Recorder
+	recordOnce              sync.Once
+	recorderPersistencePath string
 }
 
 type PublishMessage struct {
@@ -44,6 +49,41 @@ func unmarshalPublishMessage(message string) (*PublishMessage, error) {
 	}
 	return publishMessage, nil
 }
+func (rmq *RedisMQ) initFailedHandler() {
+	rmq.recordOnce.Do(func() {
+		rmq.recorder = failedlist.NewRecorder(rmq.recorderPersistencePath)
+		rmq.recorder.Start()
+
+		rmq.startHandleFailedMessage()
+	})
+}
+func (rmq *RedisMQ) startHandleFailedMessage() {
+	if rmq.recorder == nil {
+		return
+	}
+	go func() {
+		for {
+			time.Sleep(time.Minute * 5)
+			record := rmq.recorder.PickRecord()
+
+			newFailedList := make([]*failedlist.Record, 0)
+			for record != nil {
+				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, record.Ctx)
+				err := rmq.Publish(ctx, record.Topic, record.Message)
+				if err != nil {
+					//save failed record
+					newFailedList = append(newFailedList, record)
+				}
+				record = rmq.recorder.PickRecord()
+			}
+
+			//save failed in recorder
+			if len(newFailedList) > 0 {
+				rmq.recorder.AddRecordList(newFailedList)
+			}
+		}
+	}()
+}
 
 func (rmq *RedisMQ) Publish(ctx context.Context, topic string, message string) error {
 	publishMessage, err := marshalPublishMessage(ctx, message)
@@ -54,6 +94,8 @@ func (rmq *RedisMQ) Publish(ctx context.Context, topic string, message string) e
 }
 func (rmq *RedisMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int {
 	sub := drive.GetRedis().Subscribe(topic)
+
+	rmq.initFailedHandler()
 
 	go func() {
 		for {
@@ -129,9 +171,10 @@ func (rmq *RedisMQ) Unsubscribe(hid int) {
 	}
 }
 
-func NewRedisMQ() *RedisMQ {
+func NewRedisMQ(recorderPersistencePath string) *RedisMQ {
 	return &RedisMQ{
-		curId:      1,
-		subHandler: make(map[int]*redis.PubSub),
+		curId:                   1,
+		subHandler:              make(map[int]*redis.PubSub),
+		recorderPersistencePath: recorderPersistencePath,
 	}
 }

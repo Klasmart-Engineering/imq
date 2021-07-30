@@ -6,16 +6,20 @@ import (
 	"github.com/go-redis/redis"
 	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
+	"gitlab.badanamu.com.cn/calmisland/imq/failedlist"
 	"sync"
 	"time"
 )
 
 type RedisListMQ struct {
 	sync.Mutex
-	cid int
+	cid                     int
+	recorder                *failedlist.Recorder
+	recordOnce              sync.Once
+	recorderPersistencePath string
+
 	quitMap map[int]chan struct{}
 }
-
 
 func (rmq *RedisListMQ) Publish(ctx context.Context, topic string, message string) error {
 	publishMessage, err := marshalPublishMessage(ctx, message)
@@ -25,12 +29,49 @@ func (rmq *RedisListMQ) Publish(ctx context.Context, topic string, message strin
 	return drive.GetRedis().LPush(topic, publishMessage).Err()
 }
 
-func (rmq *RedisListMQ) startSubscribeLoop(handler func()) chan struct{}{
-	quit :=  make(chan struct{})
+func (rmq *RedisListMQ) initFailedHandler() {
+	rmq.recordOnce.Do(func() {
+		rmq.recorder = failedlist.NewRecorder(rmq.recorderPersistencePath)
+		rmq.recorder.Start()
+
+		rmq.startHandleFailedMessage()
+	})
+}
+
+func (rmq *RedisListMQ) startHandleFailedMessage() {
+	if rmq.recorder == nil {
+		return
+	}
+	go func() {
+		for {
+			time.Sleep(time.Minute * 5)
+			record := rmq.recorder.PickRecord()
+
+			newFailedList := make([]*failedlist.Record, 0)
+			for record != nil {
+				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, record.Ctx)
+				err := rmq.Publish(ctx, record.Topic, record.Message)
+				if err != nil {
+					//save failed record
+					newFailedList = append(newFailedList, record)
+				}
+				record = rmq.recorder.PickRecord()
+			}
+
+			//save failed in recorder
+			if len(newFailedList) > 0 {
+				rmq.recorder.AddRecordList(newFailedList)
+			}
+		}
+	}()
+}
+
+func (rmq *RedisListMQ) startSubscribeLoop(handler func()) chan struct{} {
+	quit := make(chan struct{})
 	go func() {
 		for {
 			select {
-			case <- quit:
+			case <-quit:
 				return
 			default:
 				handler()
@@ -43,12 +84,13 @@ func (rmq *RedisListMQ) startSubscribeLoop(handler func()) chan struct{}{
 func (rmq *RedisListMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int {
 	rmq.Lock()
 	defer rmq.Unlock()
+	rmq.initFailedHandler()
 
-	rmq.cid ++
+	rmq.cid++
 	rmq.quitMap[rmq.cid] = rmq.startSubscribeLoop(func() {
-		res := drive.GetRedis().BRPop(time.Second * 15, topic)
+		res := drive.GetRedis().BRPop(time.Second*15, topic)
 		result, err := res.Result()
-		if err == redis.Nil{
+		if err == redis.Nil {
 			//Timeout
 			return
 		}
@@ -56,8 +98,9 @@ func (rmq *RedisListMQ) SubscribeWithReconnect(topic string, handler func(ctx co
 			fmt.Println("Receive message failed, error:", err)
 			return
 		}
-		msg := result[len(result) - 1]
+		msg := result[len(result)-1]
 		go func() {
+			//unmarshal failed, discard it
 			publishMessage, err := unmarshalPublishMessage(msg)
 			if err != nil {
 				fmt.Println("Unmarshal message failed, error:", err)
@@ -68,9 +111,22 @@ func (rmq *RedisListMQ) SubscribeWithReconnect(topic string, handler func(ctx co
 			err = handler(ctx, publishMessage.Message)
 			//若该消息未处理，则重新发送
 			if err != nil {
-				fmt.Println("Handle message with error: ", err)
-				time.Sleep(requeue_delay)
-				rmq.Publish(context.Background(), topic, msg)
+				for i := 0; i < 10; i++ {
+					fmt.Println("Handle message with error: ", err)
+					time.Sleep(requeue_delay)
+					err = rmq.Publish(ctx, topic, msg)
+					if err == nil {
+						return
+					}
+				}
+				//try 10 times but not success
+				//write to file
+				rmq.recorder.AddRecord(&failedlist.Record{
+					Ctx:     *publishMessage.BadaCtx,
+					Time:    time.Now(),
+					Topic:   topic,
+					Message: msg,
+				})
 			}
 		}()
 	})
@@ -81,12 +137,12 @@ func (rmq *RedisListMQ) SubscribeWithReconnect(topic string, handler func(ctx co
 func (rmq *RedisListMQ) Subscribe(topic string, handler func(ctx context.Context, message string)) int {
 	rmq.Lock()
 	defer rmq.Unlock()
-	rmq.cid ++
+	rmq.cid++
 
 	rmq.quitMap[rmq.cid] = rmq.startSubscribeLoop(func() {
-		res := drive.GetRedis().BRPop(time.Second * 15, topic)
+		res := drive.GetRedis().BRPop(time.Second*15, topic)
 		result, err := res.Result()
-		if err == redis.Nil{
+		if err == redis.Nil {
 			//Timeout
 			return
 		}
@@ -94,7 +150,7 @@ func (rmq *RedisListMQ) Subscribe(topic string, handler func(ctx context.Context
 			fmt.Println("Receive message failed, error:", err)
 			return
 		}
-		msg := result[len(result) - 1]
+		msg := result[len(result)-1]
 		go func() {
 			publishMessage, err := unmarshalPublishMessage(msg)
 			if err != nil {
@@ -117,8 +173,9 @@ func (rmq *RedisListMQ) Unsubscribe(hid int) {
 	}
 }
 
-func NewRedisListMQ() *RedisListMQ {
+func NewRedisListMQ(recorderPersistencePath string) *RedisListMQ {
 	return &RedisListMQ{
-		quitMap: make(map[int]chan struct{}),
+		quitMap:                 make(map[int]chan struct{}),
+		recorderPersistencePath: recorderPersistencePath,
 	}
 }

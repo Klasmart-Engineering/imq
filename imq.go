@@ -7,13 +7,13 @@ import (
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 )
 
-var(
-	ErrUnknownDrive = errors.New("Unknown mq drive")
-	ErrInvalidNSQConfig = errors.New("Invalid nsq config")
+var (
+	ErrUnknownDrive       = errors.New("Unknown mq drive")
+	ErrInvalidNSQConfig   = errors.New("Invalid nsq config")
 	ErrInvalidKafkaConfig = errors.New("Invalid kafka config")
 )
 
-type IMessageQueue interface{
+type IMessageQueue interface {
 	Publish(ctx context.Context, topic string, message string) error
 	Subscribe(topic string, handler func(ctx context.Context, message string)) int
 	SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int
@@ -23,16 +23,17 @@ type IMessageQueue interface{
 type Config struct {
 	Drive string
 
-	RedisHost string
-	RedisPort int
-	RedisPassword string
+	RedisHost              string
+	RedisPort              int
+	RedisPassword          string
+	RedisFailedPersistence string
 
-	NSQChannel string
-	NSQLookup []string
-	NSQAddress string
+	NSQChannel   string
+	NSQLookup    []string
+	NSQAddress   string
 	OpenProducer bool
 
-	KafkaGroup string
+	KafkaGroup            string
 	KafkaBootstrapAddress []string
 }
 
@@ -43,13 +44,13 @@ func CreateMessageQueue(conf Config) (IMessageQueue, error) {
 		if err != nil {
 			return nil, err
 		}
-		return basic.NewRedisMQ(), nil
+		return basic.NewRedisMQ(conf.RedisFailedPersistence), nil
 	case "redis-list":
 		err := drive.OpenRedis(conf.RedisHost, conf.RedisPort, conf.RedisPassword)
 		if err != nil {
 			return nil, err
 		}
-		return basic.NewRedisListMQ(), nil
+		return basic.NewRedisListMQ(conf.RedisFailedPersistence), nil
 	case "nsq":
 		//if conf.OpenProducer && conf.NSQLookup == nil || conf.NSQChannel == "" || conf.NSQAddress == ""{
 		//	return nil, ErrInvalidNSQConfig
@@ -59,7 +60,7 @@ func CreateMessageQueue(conf Config) (IMessageQueue, error) {
 			Lookup:  conf.NSQLookup,
 			Channel: conf.NSQChannel,
 		})
-		if conf.OpenProducer{
+		if conf.OpenProducer {
 			err := drive.OpenNSQProducer()
 			if err != nil {
 				return nil, err
