@@ -18,6 +18,7 @@ type RedisListMQ struct {
 	recordOnce              sync.Once
 	recorderPersistencePath string
 
+	handleLimit chan struct{}
 	quitMap map[int]chan struct{}
 }
 
@@ -74,7 +75,10 @@ func (rmq *RedisListMQ) startSubscribeLoop(handler func()) chan struct{} {
 			case <-quit:
 				return
 			default:
+				//limit handler count
+				<-rmq.handleLimit
 				handler()
+				rmq.handleLimit <- struct{}{}
 			}
 		}
 	}()
@@ -173,9 +177,10 @@ func (rmq *RedisListMQ) Unsubscribe(hid int) {
 	}
 }
 
-func NewRedisListMQ(recorderPersistencePath string) *RedisListMQ {
+func NewRedisListMQ(recorderPersistencePath string, limit int) *RedisListMQ {
 	return &RedisListMQ{
 		quitMap:                 make(map[int]chan struct{}),
 		recorderPersistencePath: recorderPersistencePath,
+		handleLimit: make(chan struct{}, limit),
 	}
 }

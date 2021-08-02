@@ -27,6 +27,7 @@ type Config struct {
 	RedisPort              int
 	RedisPassword          string
 	RedisFailedPersistence string
+	RedisHandlerLimit int
 
 	NSQChannel   string
 	NSQLookup    []string
@@ -50,7 +51,10 @@ func CreateMessageQueue(conf Config) (IMessageQueue, error) {
 		if err != nil {
 			return nil, err
 		}
-		return basic.NewRedisListMQ(conf.RedisFailedPersistence), nil
+		if conf.RedisHandlerLimit < 1 {
+			conf.RedisHandlerLimit = 10
+		}
+		return basic.NewRedisListMQ(conf.RedisFailedPersistence, conf.RedisHandlerLimit), nil
 	case "nsq":
 		//if conf.OpenProducer && conf.NSQLookup == nil || conf.NSQChannel == "" || conf.NSQAddress == ""{
 		//	return nil, ErrInvalidNSQConfig
