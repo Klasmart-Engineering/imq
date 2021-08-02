@@ -23,6 +23,9 @@ func (n *NsqMQ2) Publish(ctx context.Context, topic string, message string) erro
 	}
 	return drive.GetNSQProducer().Publish(topic, []byte(publishMessage))
 }
+func (n *NsqMQ2) PendingMessage(ctx context.Context, topic string) ([]string, error){
+	return nil, nil
+}
 func (n *NsqMQ2) Subscribe(topic string, handler func(ctx context.Context, message string)) int {
 	consumer, err := drive.CreateNSQConsumer(topic, func(ctx context.Context, message string) error {
 		publishMessage, err := unmarshalPublishMessage(message)

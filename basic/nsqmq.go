@@ -58,7 +58,9 @@ func (n *NsqMQ) deleteProducer(ctx context.Context, topic string) {
 	producer.Stop()
 	delete(n.producerMap, topic)
 }
-
+func (n *NsqMQ) PendingMessage(ctx context.Context, topic string) ([]string, error){
+	return nil, nil
+}
 func (n *NsqMQ) Publish(ctx context.Context, topic string, message string) error {
 	// Starts a new producer that publishes to the TCP endpoint of a nsqd node.
 	// The producer automatically handles connections in the background.

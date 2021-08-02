@@ -84,7 +84,9 @@ func (rmq *RedisMQ) startHandleFailedMessage() {
 		}
 	}()
 }
-
+func (rmq *RedisMQ) PendingMessage(ctx context.Context, topic string) ([]string, error){
+	return nil, nil
+}
 func (rmq *RedisMQ) Publish(ctx context.Context, topic string, message string) error {
 	publishMessage, err := marshalPublishMessage(ctx, message)
 	if err != nil {

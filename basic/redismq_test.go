@@ -2,8 +2,8 @@ package basic
 
 import (
 	"context"
-	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"fmt"
+	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"testing"
 	"time"
 )
@@ -22,7 +22,7 @@ func TestSubscribePublish(t *testing.T) {
 		return
 	}
 
-	mq := NewRedisMQ()
+	mq := NewRedisMQ("./failedlist.json")
 	h1 := mq.Subscribe("mypay", subscribeHandler)
 	mq.Subscribe("mypay", subscribeHandler2)
 
@@ -45,7 +45,7 @@ func TestSubscribePublishTimeout(t *testing.T) {
 		return
 	}
 
-	mq := NewRedisMQ()
+	mq := NewRedisMQ("failed_list.json")
 	mq.Subscribe("mypay", subscribeHandler)
 	mq.Subscribe("mypay", subscribeHandler2)
 

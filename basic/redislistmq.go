@@ -22,6 +22,14 @@ type RedisListMQ struct {
 	quitMap map[int]chan struct{}
 }
 
+func (rmq *RedisListMQ) PendingMessage(ctx context.Context, topic string) ([]string, error){
+	messages, err := drive.GetRedis().LRange(topic, 0, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+	return messages, nil
+}
+
 func (rmq *RedisListMQ) Publish(ctx context.Context, topic string, message string) error {
 	publishMessage, err := marshalPublishMessage(ctx, message)
 	if err != nil {

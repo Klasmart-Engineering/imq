@@ -105,6 +105,9 @@ func (k *KafkaMQ) Subscribe(topic string, handler func(ctx context.Context, mess
 
 	return id
 }
+func (k *KafkaMQ) PendingMessage(ctx context.Context, topic string) ([]string, error){
+	return nil, nil
+}
 func (k *KafkaMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int {
 	consumer := drive.NewKafkaReader(topic, k.config.BootstrapAddress, k.config.GroupId)
 	go func() {

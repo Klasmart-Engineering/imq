@@ -18,6 +18,8 @@ type IMessageQueue interface {
 	Subscribe(topic string, handler func(ctx context.Context, message string)) int
 	SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int
 	Unsubscribe(hid int)
+
+	PendingMessage(ctx context.Context, topic string) ([]string, error)
 }
 
 type Config struct {
