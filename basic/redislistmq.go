@@ -84,9 +84,9 @@ func (rmq *RedisListMQ) startSubscribeLoop(handler func()) chan struct{} {
 				return
 			default:
 				//limit handler count
-				<-rmq.handleLimit
-				handler()
 				rmq.handleLimit <- struct{}{}
+				handler()
+				<-rmq.handleLimit
 			}
 		}
 	}()
