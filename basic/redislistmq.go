@@ -134,7 +134,7 @@ func (rmq *RedisListMQ) SubscribeWithReconnect(topic string, handler func(ctx co
 			//try 10 times but not success
 			//write to file
 			rmq.recorder.AddRecord(&failedlist.Record{
-				Ctx:     *publishMessage.BadaCtx,
+				Ctx:     publishMessage.BadaCtx,
 				Time:    time.Now(),
 				Topic:   topic,
 				Message: msg,

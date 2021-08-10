@@ -25,14 +25,17 @@ type RedisMQ struct {
 
 type PublishMessage struct {
 	Message string          `json:"message"`
-	BadaCtx *helper.BadaCtx `json:"bada_ctx"`
+	BadaCtx helper.BadaCtx `json:"bada_ctx"`
 }
 
 func marshalPublishMessage(ctx context.Context, message string) (string, error) {
 	badaCtx, _ := ctx.Value(helper.CtxKeyBadaCtx).(*helper.BadaCtx)
+	if badaCtx == nil {
+		badaCtx = &helper.BadaCtx{}
+	}
 	publishMessage := PublishMessage{
 		Message: message,
-		BadaCtx: badaCtx,
+		BadaCtx: *badaCtx,
 	}
 	resp, err := json.Marshal(publishMessage)
 	if err != nil {
