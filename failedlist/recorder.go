@@ -112,6 +112,10 @@ func (r *Recorder) loadRecords() {
 func (r *Recorder) saveRecords() error {
 	r.persistence.Truncate(0)
 	r.persistence.Seek(0, io.SeekStart)
+	if len(r.list) < 1 {
+		r.persistence.WriteString("")
+		return nil
+	}
 
 	data, err := json.Marshal(r.list)
 	if err != nil {
