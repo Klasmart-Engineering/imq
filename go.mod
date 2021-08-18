@@ -9,5 +9,5 @@ require (
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/segmentio/kafka-go v0.3.6
 	github.com/segmentio/nsq-go v1.2.3
-	gitlab.badanamu.com.cn/calmisland/common-cn v0.14.0
+	gitlab.badanamu.com.cn/calmisland/common-cn v0.17.0
 )

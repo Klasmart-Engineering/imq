@@ -29,8 +29,9 @@ type PublishMessage struct {
 }
 
 func marshalPublishMessage(ctx context.Context, message string) (string, error) {
-	badaCtx, _ := ctx.Value(helper.CtxKeyBadaCtx).(*helper.BadaCtx)
-	if badaCtx == nil {
+	badaCtx, ok := helper.GetBadaCtx(ctx)
+
+	if !ok || badaCtx == nil {
 		badaCtx = &helper.BadaCtx{}
 	}
 	publishMessage := PublishMessage{
@@ -71,7 +72,7 @@ func (rmq *RedisMQ) startHandleFailedMessage() {
 
 			newFailedList := make([]*failedlist.Record, 0)
 			for record != nil {
-				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, record.Ctx)
+				ctx := record.Ctx.MaybeEmbedIntoContext(context.Background())
 				err := rmq.Publish(ctx, record.Topic, record.Message)
 				if err != nil {
 					//save failed record
@@ -116,7 +117,7 @@ func (rmq *RedisMQ) SubscribeWithReconnect(topic string, handler func(ctx contex
 					fmt.Println("Unmarshal message failed, error:", err)
 					return
 				}
-				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+				ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
 
 				err = handler(ctx, publishMessage.Message)
 				//若该消息未处理，则重新发送
@@ -152,7 +153,7 @@ func (rmq *RedisMQ) Subscribe(topic string, handler func(ctx context.Context, me
 					fmt.Println("Unmarshal message failed, error:", err)
 					return
 				}
-				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+				ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
 
 				handler(ctx, publishMessage.Message)
 			}()

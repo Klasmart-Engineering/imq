@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-redis/redis"
-	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"gitlab.badanamu.com.cn/calmisland/imq/failedlist"
 	"sync"
@@ -58,7 +57,7 @@ func (rmq *RedisListMQ) startHandleFailedMessage() {
 
 			newFailedList := make([]*failedlist.Record, 0)
 			for record != nil {
-				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, record.Ctx)
+				ctx := record.Ctx.MaybeEmbedIntoContext(context.Background())
 				err := rmq.Publish(ctx, record.Topic, record.Message)
 				if err != nil {
 					//save failed record
@@ -118,7 +117,7 @@ func (rmq *RedisListMQ) SubscribeWithReconnect(topic string, handler func(ctx co
 			fmt.Println("Unmarshal message failed, error:", err)
 			return
 		}
-		ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+		ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
 
 		err = handler(ctx, publishMessage.Message)
 		//若该消息未处理，则重新发送
@@ -168,7 +167,7 @@ func (rmq *RedisListMQ) Subscribe(topic string, handler func(ctx context.Context
 			fmt.Println("Unmarshal message failed, error:", err)
 			return
 		}
-		ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+		ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
 		handler(ctx, publishMessage.Message)
 	})
 

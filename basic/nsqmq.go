@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/segmentio/nsq-go"
-	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
 )
 
 const (
@@ -112,7 +111,7 @@ func (n *NsqMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Co
 					fmt.Println("Unmarshal message failed, error:", err)
 					return
 				}
-				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+				ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
 
 				ret := handler(ctx, publishMessage.Message)
 				if ret {
@@ -159,7 +158,7 @@ func (n *NsqMQ) Subscribe(topic string, handler func(ctx context.Context, messag
 					fmt.Println("Unmarshal message failed, error:", err)
 					//return err
 				}
-				ctx := context.WithValue(context.Background(), helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+				ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
 
 				handler(ctx, publishMessage.Message)
 				msg.Finish()

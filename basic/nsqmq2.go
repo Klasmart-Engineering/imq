@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/nsqio/go-nsq"
-	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 )
 
@@ -33,7 +32,7 @@ func (n *NsqMQ2) Subscribe(topic string, handler func(ctx context.Context, messa
 			fmt.Println("Unmarshal message failed, error:", err)
 			return err
 		}
-		ctx0 := context.WithValue(ctx, helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+		ctx0 := publishMessage.BadaCtx.MaybeEmbedIntoContext(ctx)
 
 		handler(ctx0, publishMessage.Message)
 		return nil
@@ -57,7 +56,7 @@ func (n *NsqMQ2) SubscribeWithReconnect(topic string, handler func(ctx context.C
 			fmt.Println("Unmarshal message failed, error:", err)
 			return err
 		}
-		ctx0 := context.WithValue(ctx, helper.CtxKeyBadaCtx, publishMessage.BadaCtx)
+		ctx0 := publishMessage.BadaCtx.MaybeEmbedIntoContext(ctx)
 
 		err = handler(ctx0, publishMessage.Message)
 		if err != nil {
