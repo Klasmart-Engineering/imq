@@ -126,7 +126,7 @@ func (rmq *RedisListMQ) SubscribeWithReconnect(topic string, handler func(ctx co
 			for i := 0; i < 10; i++ {
 				fmt.Println("Handle message with error: ", err)
 				time.Sleep(requeue_delay)
-				err = rmq.Publish(ctx, topic, msg)
+				err = rmq.Publish(ctx, topic, publishMessage.Message)
 				if err == nil {
 					return
 				}

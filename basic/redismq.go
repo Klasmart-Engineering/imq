@@ -123,7 +123,7 @@ func (rmq *RedisMQ) SubscribeWithReconnect(topic string, handler func(ctx contex
 				if err != nil {
 					fmt.Println("Handle message with error: ", err)
 					time.Sleep(requeue_delay)
-					rmq.Publish(context.Background(), topic, msg.Payload)
+					rmq.Publish(context.Background(), topic, publishMessage.Message)
 				}
 			}()
 		}
