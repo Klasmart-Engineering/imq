@@ -3,14 +3,14 @@ package drive
 import (
 	"context"
 	"errors"
-	nsq "github.com/nsqio/go-nsq"
 	"log"
-)
 
+	nsq "github.com/nsqio/go-nsq"
+)
 
 type NSQConfig struct {
 	Address string
-	Lookup []string
+	Lookup  []string
 	Channel string
 }
 
@@ -21,7 +21,7 @@ var (
 var producer *nsq.Producer
 var config *NSQConfig
 
-func OpenNSQProducer() error{
+func OpenNSQProducer() error {
 	tmpProducer, err := nsq.NewProducer(config.Address, nsq.NewConfig())
 	if err != nil {
 		return err
@@ -37,11 +37,11 @@ func OpenNSQProducer() error{
 	return nil
 }
 
-func SetNSQConfig(c *NSQConfig){
+func SetNSQConfig(c *NSQConfig) {
 	config = c
 }
 
-func GetNSQProducer() *nsq.Producer{
+func GetNSQProducer() *nsq.Producer {
 	return producer
 }
 
@@ -49,11 +49,11 @@ type ConsumerHandler struct {
 	HandleMessageFunc func(ctx context.Context, message string) error
 }
 
-func (c *ConsumerHandler)HandleMessage(msg *nsq.Message) error {
+func (c *ConsumerHandler) HandleMessage(msg *nsq.Message) error {
 	return c.HandleMessageFunc(context.Background(), string(msg.Body))
 }
 
-func CreateNSQConsumer(topic string, handler func(ctx context.Context, message string) error) (*nsq.Consumer, error){
+func CreateNSQConsumer(topic string, handler func(ctx context.Context, message string) error) (*nsq.Consumer, error) {
 	if config == nil {
 		return nil, ErrNoNSQConfig
 	}
@@ -69,12 +69,11 @@ func CreateNSQConsumer(topic string, handler func(ctx context.Context, message s
 		if err != nil {
 			return nil, err
 		}
-	}else{
+	} else {
 		err = consumer.ConnectToNSQD(config.Address)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 	}
-
 	return consumer, nil
 }

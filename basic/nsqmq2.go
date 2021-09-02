@@ -2,11 +2,16 @@ package basic
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/nsqio/go-nsq"
 	"gitlab.badanamu.com.cn/calmisland/imq/drive"
+)
+
+var (
+	ErrUnsupportedFeature = errors.New("unsupported feature")
 )
 
 type NsqMQ2 struct {
@@ -22,8 +27,8 @@ func (n *NsqMQ2) Publish(ctx context.Context, topic string, message string) erro
 	}
 	return drive.GetNSQProducer().Publish(topic, []byte(publishMessage))
 }
-func (n *NsqMQ2) PendingMessage(ctx context.Context, topic string) ([]string, error){
-	return nil, nil
+func (n *NsqMQ2) PendingMessage(ctx context.Context, topic string) ([]string, error) {
+	return nil, ErrUnsupportedFeature
 }
 func (n *NsqMQ2) Subscribe(topic string, handler func(ctx context.Context, message string)) int {
 	consumer, err := drive.CreateNSQConsumer(topic, func(ctx context.Context, message string) error {
