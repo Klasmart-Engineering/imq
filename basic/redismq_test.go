@@ -3,9 +3,10 @@ package basic
 import (
 	"context"
 	"fmt"
-	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"testing"
 	"time"
+
+	"github.com/KL-Engineering/imq/drive"
 )
 
 func subscribeHandler(ctx context.Context, msg string) {
@@ -17,7 +18,7 @@ func subscribeHandler2(ctx context.Context, msg string) {
 
 func TestSubscribePublish(t *testing.T) {
 	err := drive.OpenRedis("127.0.0.1", 6379, "")
-	if err != nil{
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -36,11 +37,9 @@ func TestSubscribePublish(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
-
-
 func TestSubscribePublishTimeout(t *testing.T) {
 	err := drive.OpenRedis("127.0.0.1", 6379, "")
-	if err != nil{
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -56,7 +55,6 @@ func TestSubscribePublishTimeout(t *testing.T) {
 	time.Sleep(time.Minute * 5)
 
 	mq.Publish(context.Background(), "mypay", "timeout goodbye")
-
 
 	time.Sleep(time.Minute * 1)
 

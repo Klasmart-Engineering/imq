@@ -3,8 +3,9 @@ package imq
 import (
 	"context"
 	"errors"
-	"gitlab.badanamu.com.cn/calmisland/imq/basic"
-	"gitlab.badanamu.com.cn/calmisland/imq/drive"
+
+	"github.com/KL-Engineering/imq/basic"
+	"github.com/KL-Engineering/imq/drive"
 )
 
 var (
@@ -29,7 +30,7 @@ type Config struct {
 	RedisPort              int
 	RedisPassword          string
 	RedisFailedPersistence string
-	RedisHandlerThread int
+	RedisHandlerThread     int
 
 	NSQChannel   string
 	NSQLookup    []string

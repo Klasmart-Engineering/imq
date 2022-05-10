@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gitlab.badanamu.com.cn/calmisland/imq/failedlist"
 	"sync"
 	"time"
 
+	"github.com/KL-Engineering/imq/failedlist"
+
+	gintrace "github.com/KL-Engineering/gin-trace"
+	"github.com/KL-Engineering/imq/drive"
 	"github.com/go-redis/redis"
-	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
-	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 )
 
 type RedisMQ struct {
@@ -24,15 +25,15 @@ type RedisMQ struct {
 }
 
 type PublishMessage struct {
-	Message string          `json:"message"`
-	BadaCtx helper.BadaCtx `json:"bada_ctx"`
+	Message string           `json:"message"`
+	BadaCtx gintrace.BadaCtx `json:"bada_ctx"`
 }
 
 func marshalPublishMessage(ctx context.Context, message string) (string, error) {
-	badaCtx, ok := helper.GetBadaCtx(ctx)
+	badaCtx, ok := gintrace.GetBadaCtx(ctx)
 
 	if !ok || badaCtx == nil {
-		badaCtx = &helper.BadaCtx{}
+		badaCtx = &gintrace.BadaCtx{}
 	}
 	publishMessage := PublishMessage{
 		Message: message,
@@ -72,7 +73,7 @@ func (rmq *RedisMQ) startHandleFailedMessage() {
 
 			newFailedList := make([]*failedlist.Record, 0)
 			for record != nil {
-				ctx := record.Ctx.MaybeEmbedIntoContext(context.Background())
+				ctx, _ := record.Ctx.EmbedIntoContext(context.Background())
 				err := rmq.Publish(ctx, record.Topic, record.Message)
 				if err != nil {
 					//save failed record
@@ -88,7 +89,7 @@ func (rmq *RedisMQ) startHandleFailedMessage() {
 		}
 	}()
 }
-func (rmq *RedisMQ) PendingMessage(ctx context.Context, topic string) ([]string, error){
+func (rmq *RedisMQ) PendingMessage(ctx context.Context, topic string) ([]string, error) {
 	return nil, nil
 }
 func (rmq *RedisMQ) Publish(ctx context.Context, topic string, message string) error {
@@ -117,7 +118,7 @@ func (rmq *RedisMQ) SubscribeWithReconnect(topic string, handler func(ctx contex
 					fmt.Println("Unmarshal message failed, error:", err)
 					return
 				}
-				ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
+				ctx, _ := publishMessage.BadaCtx.EmbedIntoContext(context.Background())
 
 				err = handler(ctx, publishMessage.Message)
 				//若该消息未处理，则重新发送
@@ -153,7 +154,7 @@ func (rmq *RedisMQ) Subscribe(topic string, handler func(ctx context.Context, me
 					fmt.Println("Unmarshal message failed, error:", err)
 					return
 				}
-				ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
+				ctx, _ := publishMessage.BadaCtx.EmbedIntoContext(context.Background())
 
 				handler(ctx, publishMessage.Message)
 			}()

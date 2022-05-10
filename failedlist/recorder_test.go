@@ -1,9 +1,10 @@
 package failedlist
 
 import (
-	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
 	"testing"
 	"time"
+
+	gintrace "github.com/KL-Engineering/gin-trace"
 )
 
 func TestRecorder(t *testing.T) {
@@ -11,7 +12,7 @@ func TestRecorder(t *testing.T) {
 	recorder.Start()
 
 	recorder.AddRecord(&Record{
-		Ctx: helper.BadaCtx{
+		Ctx: gintrace.BadaCtx{
 			PrevTid:  "1",
 			CurrTid:  "2",
 			EntryTid: "3",
@@ -26,7 +27,7 @@ func TestRecorder(t *testing.T) {
 		Message: "aabbccc",
 	})
 	recorder.AddRecord(&Record{
-		Ctx: helper.BadaCtx{
+		Ctx: gintrace.BadaCtx{
 			PrevTid:  "14",
 			CurrTid:  "24",
 			EntryTid: "34",

@@ -2,9 +2,10 @@ package basic
 
 import (
 	"context"
-	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 	"testing"
 	"time"
+
+	"github.com/KL-Engineering/imq/drive"
 )
 
 func TestNSQSubscribePublish(t *testing.T) {
@@ -26,8 +27,6 @@ func TestNSQSubscribePublish(t *testing.T) {
 
 	time.Sleep(time.Second * 5)
 }
-
-
 
 func TestNSQSubscribePublish2(t *testing.T) {
 	drive.SetNSQConfig(&drive.NSQConfig{
@@ -52,4 +51,3 @@ func TestNSQSubscribePublish2(t *testing.T) {
 
 	time.Sleep(time.Second * 5)
 }
-

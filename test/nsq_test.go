@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.badanamu.com.cn/calmisland/imq"
+	"github.com/KL-Engineering/imq"
 )
 
 func TestPublishNSQ(t *testing.T) {

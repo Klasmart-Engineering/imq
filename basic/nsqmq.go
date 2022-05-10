@@ -57,7 +57,7 @@ func (n *NsqMQ) deleteProducer(ctx context.Context, topic string) {
 	producer.Stop()
 	delete(n.producerMap, topic)
 }
-func (n *NsqMQ) PendingMessage(ctx context.Context, topic string) ([]string, error){
+func (n *NsqMQ) PendingMessage(ctx context.Context, topic string) ([]string, error) {
 	return nil, nil
 }
 func (n *NsqMQ) Publish(ctx context.Context, topic string, message string) error {
@@ -111,7 +111,7 @@ func (n *NsqMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Co
 					fmt.Println("Unmarshal message failed, error:", err)
 					return
 				}
-				ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
+				ctx, _ := publishMessage.BadaCtx.EmbedIntoContext(context.Background())
 
 				ret := handler(ctx, publishMessage.Message)
 				if ret {
@@ -158,7 +158,7 @@ func (n *NsqMQ) Subscribe(topic string, handler func(ctx context.Context, messag
 					fmt.Println("Unmarshal message failed, error:", err)
 					//return err
 				}
-				ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
+				ctx, _ := publishMessage.BadaCtx.EmbedIntoContext(context.Background())
 
 				handler(ctx, publishMessage.Message)
 				msg.Finish()

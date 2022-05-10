@@ -3,12 +3,13 @@ package failedlist
 import (
 	"encoding/json"
 	"fmt"
-	"gitlab.badanamu.com.cn/calmisland/common-cn/helper"
 	"io"
 	"io/ioutil"
 	"os"
 	"sync"
 	"time"
+
+	gintrace "github.com/KL-Engineering/gin-trace"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 )
 
 type Record struct {
-	Ctx helper.BadaCtx
+	Ctx gintrace.BadaCtx
 
 	Time    time.Time
 	Topic   string

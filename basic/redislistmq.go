@@ -3,11 +3,12 @@ package basic
 import (
 	"context"
 	"fmt"
-	"github.com/go-redis/redis"
-	"gitlab.badanamu.com.cn/calmisland/imq/drive"
-	"gitlab.badanamu.com.cn/calmisland/imq/failedlist"
 	"sync"
 	"time"
+
+	"github.com/KL-Engineering/imq/drive"
+	"github.com/KL-Engineering/imq/failedlist"
+	"github.com/go-redis/redis"
 )
 
 type RedisListMQ struct {
@@ -18,7 +19,7 @@ type RedisListMQ struct {
 	recorderPersistencePath string
 
 	threadCount int
-	quitMap map[int]chan struct{}
+	quitMap     map[int]chan struct{}
 }
 
 func (rmq *RedisListMQ) PendingMessage(ctx context.Context, topic string) ([]string, error) {
@@ -57,7 +58,7 @@ func (rmq *RedisListMQ) startHandleFailedMessage() {
 
 			newFailedList := make([]*failedlist.Record, 0)
 			for record != nil {
-				ctx := record.Ctx.MaybeEmbedIntoContext(context.Background())
+				ctx, _ := record.Ctx.EmbedIntoContext(context.Background())
 				err := rmq.Publish(ctx, record.Topic, record.Message)
 				if err != nil {
 					//save failed record
@@ -76,7 +77,7 @@ func (rmq *RedisListMQ) startHandleFailedMessage() {
 
 func (rmq *RedisListMQ) startSubscribeLoop(handler func()) chan struct{} {
 	quit := make(chan struct{})
-	for i := 0; i < rmq.threadCount; i ++ {
+	for i := 0; i < rmq.threadCount; i++ {
 		go func() {
 			for {
 				select {
@@ -117,7 +118,7 @@ func (rmq *RedisListMQ) SubscribeWithReconnect(topic string, handler func(ctx co
 			fmt.Println("Unmarshal message failed, error:", err)
 			return
 		}
-		ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
+		ctx, _ := publishMessage.BadaCtx.EmbedIntoContext(context.Background())
 
 		err = handler(ctx, publishMessage.Message)
 		//若该消息未处理，则重新发送
@@ -167,7 +168,7 @@ func (rmq *RedisListMQ) Subscribe(topic string, handler func(ctx context.Context
 			fmt.Println("Unmarshal message failed, error:", err)
 			return
 		}
-		ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
+		ctx, _ := publishMessage.BadaCtx.EmbedIntoContext(context.Background())
 		handler(ctx, publishMessage.Message)
 	})
 
@@ -178,7 +179,7 @@ func (rmq *RedisListMQ) Unsubscribe(hid int) {
 	rmq.Lock()
 	defer rmq.Unlock()
 	if rmq.quitMap[hid] != nil {
-		for i := 0; i < rmq.threadCount; i ++ {
+		for i := 0; i < rmq.threadCount; i++ {
 			rmq.quitMap[hid] <- struct{}{}
 		}
 	}
@@ -188,6 +189,6 @@ func NewRedisListMQ(recorderPersistencePath string, threadCount int) *RedisListM
 	return &RedisListMQ{
 		quitMap:                 make(map[int]chan struct{}),
 		recorderPersistencePath: recorderPersistencePath,
-		threadCount: threadCount,
+		threadCount:             threadCount,
 	}
 }

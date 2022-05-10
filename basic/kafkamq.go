@@ -6,8 +6,8 @@ import (
 	"io"
 	"sync"
 
+	"github.com/KL-Engineering/imq/drive"
 	"github.com/segmentio/kafka-go"
-	"gitlab.badanamu.com.cn/calmisland/imq/drive"
 )
 
 type KafkaConfig struct {
@@ -81,7 +81,7 @@ func (k *KafkaMQ) Subscribe(topic string, handler func(ctx context.Context, mess
 						fmt.Println("Unmarshal message failed, error:", err)
 						//return err
 					}
-					ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
+					ctx, _ := publishMessage.BadaCtx.EmbedIntoContext(context.Background())
 					handler(ctx, publishMessage.Message)
 					fmt.Printf("Message on %s: %s\n", msg.Key, string(msg.Value))
 				}(msg0)
@@ -104,7 +104,7 @@ func (k *KafkaMQ) Subscribe(topic string, handler func(ctx context.Context, mess
 
 	return id
 }
-func (k *KafkaMQ) PendingMessage(ctx context.Context, topic string) ([]string, error){
+func (k *KafkaMQ) PendingMessage(ctx context.Context, topic string) ([]string, error) {
 	return nil, nil
 }
 func (k *KafkaMQ) SubscribeWithReconnect(topic string, handler func(ctx context.Context, message string) error) int {
@@ -119,7 +119,7 @@ func (k *KafkaMQ) SubscribeWithReconnect(topic string, handler func(ctx context.
 						fmt.Println("Unmarshal message failed, error:", err)
 						//return err
 					}
-					ctx := publishMessage.BadaCtx.MaybeEmbedIntoContext(context.Background())
+					ctx, _ := publishMessage.BadaCtx.EmbedIntoContext(context.Background())
 					err = handler(ctx, publishMessage.Message)
 					if err != nil {
 						fmt.Printf("Consumer error: %v (%v)\n", err, msg)
