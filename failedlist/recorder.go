@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	gintrace "github.com/KL-Engineering/gin-trace"
+	"github.com/KL-Engineering/tracecontext"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 )
 
 type Record struct {
-	Ctx gintrace.BadaCtx
+	Ctx tracecontext.TraceContext
 
 	Time    time.Time
 	Topic   string

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	gintrace "github.com/KL-Engineering/gin-trace"
+	"github.com/KL-Engineering/tracecontext"
 )
 
 func TestRecorder(t *testing.T) {
@@ -12,7 +12,7 @@ func TestRecorder(t *testing.T) {
 	recorder.Start()
 
 	recorder.AddRecord(&Record{
-		Ctx: gintrace.BadaCtx{
+		Ctx: tracecontext.TraceContext{
 			PrevTid:  "1",
 			CurrTid:  "2",
 			EntryTid: "3",
@@ -27,7 +27,7 @@ func TestRecorder(t *testing.T) {
 		Message: "aabbccc",
 	})
 	recorder.AddRecord(&Record{
-		Ctx: gintrace.BadaCtx{
+		Ctx: tracecontext.TraceContext{
 			PrevTid:  "14",
 			CurrTid:  "24",
 			EntryTid: "34",

@@ -7,10 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KL-Engineering/imq/failedlist"
-
-	gintrace "github.com/KL-Engineering/gin-trace"
 	"github.com/KL-Engineering/imq/drive"
+	"github.com/KL-Engineering/imq/failedlist"
+	"github.com/KL-Engineering/tracecontext"
 	"github.com/go-redis/redis"
 )
 
@@ -25,15 +24,15 @@ type RedisMQ struct {
 }
 
 type PublishMessage struct {
-	Message string           `json:"message"`
-	BadaCtx gintrace.BadaCtx `json:"bada_ctx"`
+	Message string                    `json:"message"`
+	BadaCtx tracecontext.TraceContext `json:"bada_ctx"`
 }
 
 func marshalPublishMessage(ctx context.Context, message string) (string, error) {
-	badaCtx, ok := gintrace.GetBadaCtx(ctx)
+	badaCtx, ok := tracecontext.GetTraceContext(ctx)
 
 	if !ok || badaCtx == nil {
-		badaCtx = &gintrace.BadaCtx{}
+		*badaCtx = tracecontext.NewTraceContext()
 	}
 	publishMessage := PublishMessage{
 		Message: message,
